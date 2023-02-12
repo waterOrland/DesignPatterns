@@ -7,6 +7,109 @@
 
 import Foundation
 
+// MARK: - Visitor Pattern
+/**
+ Building a complex algorithms
+ Ability to implement multiple distinct operations, without changing the underlying object structure
+ Series of protocols that each object has to implement:
+ -Define Visitable, elements that can be visited
+ -Define Visitor, helps traverse Visitable objects
+ -Extend existing objects to be Visitable
+ -Implement on or many Visitor Object and their logic
+ */
+
+///*
+protocol Visitor {
+    func visit<T>(element: T) where T: Visitable
+}
+
+protocol Visitable {
+    func accept(visitor: Visitor)
+}
+
+extension Visitable {
+    /** Default Implementation for visitable nodes--generics are not needed */
+    func accept(visitor: Visitor) {
+        visitor.visit(element: self)
+    }
+}
+
+extension Array: Visitable where Element: Visitable {
+    func accept(visitor: Visitor) {
+        visitor.visit(element: self)
+        forEach {
+            visitor.visit(element: $0)
+        }
+    }
+}
+
+struct Contribution {
+    let date: Date
+    let author: String
+    let email: String
+    let details: String
+}
+
+extension Contribution: Visitable {
+    /** As Contribution is Visitable , [Contribution] will also be so, thanks to the protocol extension Array */
+}
+
+class LoggerVisitor: Visitor {
+    func visit<T>(element: T) where T : Visitable {
+        guard
+            let contribution = element as? Contribution else { return }
+        print("\(contribution.author) / \(contribution.email)")
+    }
+}
+
+let visitor = LoggerVisitor()
+
+[
+    Contribution(date: Date(),
+                 author: "Contributor",
+                 email: "my@email.com",
+                 details: "")
+].accept(visitor: visitor)
+
+[
+    Contribution(date: Date(),
+                 author: "Contributor 2",
+                 email: "my-other@email.com",
+                 details: "")
+].accept(visitor: visitor)
+
+let threeDaysAgo = Calendar.current.date(byAdding: .day, value: -3, to: Date())!
+let fourDaysAgo = Calendar.current.date(byAdding: .day, value: -4, to: Date())!
+
+class ThankYouVisitor: Visitor {
+    var contributions = [Contribution]()
+    func visit<T>(element: T) where T : Visitable {
+        guard
+            let contribution = element as? Contribution else { return }
+        // Check that the contribution was done between 3 and 4 days ago
+        if contribution.date <= threeDaysAgo && contribution.date > fourDaysAgo {
+            contributions.append(contribution)
+        }
+    }
+}
+
+let thanksVisitor = ThankYouVisitor()
+Contribution(date: threeDaysAgo,
+             author: "John Duff",
+             email: "john@email.com",
+             details: "...")
+.accept(visitor: thanksVisitor)
+
+let allContribution = [Contribution]()
+allContribution.accept(visitor: thanksVisitor)
+
+// Send thanks!
+// thanksVisitor.contributions.forEach {
+    // sendThanks($0)
+//}
+
+//*/
+
 // MARK: - Memento Pattern
 /**
  Preserve multiple states of program or models
