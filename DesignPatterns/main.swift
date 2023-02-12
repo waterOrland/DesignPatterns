@@ -9,14 +9,14 @@ import Foundation
 
 // MARK: - Memento Pattern
 /**
- -preserve multiple states of program or models
+ Preserve multiple states of program or models
  
  Memento: a representation of the internal state of Originator, which should be immutable
  Originator: the original object that can produce and consume the Memento, in order to save and restore its own state
  CareTaker: an external object that stores and restores a Memento to an Originator
  */
 
-///*
+/*
 protocol Originator {
     /**
      Two responsibilities:
@@ -122,8 +122,7 @@ print("3--\n\(shoppingList)\n\n")
 shoppingList.restore() // picked up wrong item
 print("4--\n\(shoppingList)\n\n")
 
-//*/
-
+*/
 
 // MARK: - Observer Pattern - Observation using pure Swift
 /*
@@ -151,6 +150,13 @@ article.title = "A Better Title"
 */
 
 // MARK: - Flyweight Pattern
+/**
+ USAGE:
+ -Creating many instances of the same object
+ -Afford to use memory to cache instances
+ -Does not mutate those instances, and can afford to share across the program
+ */
+
 /*
 struct Ingredient: CustomDebugStringConvertible {
     let name: String
@@ -201,6 +207,13 @@ print(shopping)
 */
 
 // MARK: - Bridge Pattern*
+/**
+ Architecture and testability.
+ Swap at runtime which object performs the work:
+ -Abstraction
+ -Implementor
+ */
+
 /*
 protocol ImplementorType {
     func start()
@@ -288,6 +301,14 @@ assert(testImplementor.stopCalled)
 */
 
 // MARK: - Facade Pattern*
+/**
+ Reduce the apparent complexity of a subsystem, by exposing a simpler interface.
+ Hide multiple tightly coupled subcomponents behind a single object or method.
+ -URLSession: A system that fetches a resource based on its URLRequest
+ -Cache: The subsystem responsible for storing the results of the resource fetcher
+ -CacheCleaner: The subsystem responsible for periodically running over the cache and actively removing stale data
+ */
+
 /*
 class Cache {
     func set(response: URLResponse, data: Data, for request: URLRequest) {}
@@ -356,6 +377,10 @@ class CachedNetworking {
 */
 
 // MARK: - Decorator Pattern
+/**
+ Allows to add behaviors to objects without changing their structure or inheritance chain.
+ Instead of subclassing, decorators enhance an object's behavior by adding functionalities
+ */
 
  /*
 public protocol Burger {
@@ -447,6 +472,73 @@ assert(burger.price == reducedBurger.price)
 
  */
  
+// MARK: - Builder Pattern
+/**
+ An abstract way the construction of objects or values that require a large number of parameters by using an intermediate representation.
+ */
+
+/*
+struct Article {
+    let id: String
+    let title: String
+    let contents: String
+    let author: String
+    let date: Date
+    var views: Int
+}
+
+extension Article {
+    /** Does not pollute the original struct with the builder code */
+    
+    class Builder {
+        private var id: String = "123"
+        private var title: String?
+        private var contents: String?
+        private var author: String?
+        private var date: Date = Date()
+        private var views: Int = 0
+        
+        func set(id: String) -> Builder {
+            self.id = id
+            return self
+        }
+        func set(title: String) -> Builder {
+            self.title = title
+            return self
+        }
+        func set(content: String) -> Builder {
+            self.contents = content
+            return self
+        }
+        func set(author: String) -> Builder {
+            self.author = author
+            return self
+        }
+        func set(date: Date) -> Builder {
+            self.date = date
+            return self
+        }
+        func set(views: Int) -> Builder {
+            self.views = views
+            return self
+        }
+        func build() -> Article {
+            /** !! IMPORTANT !! Returns the new instance of the original type */
+            return Article(id: id,
+                           title: title!,
+                           contents: contents!,
+                           author: author!,
+                           date: date,
+                           views: views)
+        }
+    }
+}
+
+let builder = Article.Builder()
+*/
+
+// MARK: - Refreshing The Basics
+
 /*
 func get<T>(url: URL, callback: @escaping (T?, Error?) -> Void) -> URLSessionTask where T: Decodable {
     let task = URLSession.shared.dataTask(with: url) { data, response, error in
