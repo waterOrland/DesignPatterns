@@ -7,9 +7,169 @@
 
 import Foundation
 
+// MARK: - Strategy Pattern
+/**
+ Write programs that are able to select different algorithms or stragies at runtime
+ -Complex classes with multiple algorithms changing at runtime
+ -Algorithms that may improve performance and need to be swapped at runtime
+ -Multiple implementations of similar algorithms in different classes, making them difficult to extract
+ -Complex algorithms that are stronglhy tied to data structures
+ Isolate those algorithms from the context they operate in
+ Components:
+ -Context objects, which will have a Strategy member
+ -Stragey implemtations that can be swapped at runtime
+ */
+
+///*
+protocol Strategy {
+    /** The algorithm that runs the code, and that will be swapped at runtime */
+    associatedtype ReturnType
+    associatedtype ArgumentType
+    func run(argument: ArgumentType) -> ReturnType
+}
+
+protocol Context {
+    associatedtype StrategyType: Strategy
+    var strategy: StrategyType { get set }
+}
+
+// The ice-cream shop example
+
+enum IceCreamPart {
+    case waffer
+    case cup
+    case scoop(Int)
+    case chocolateDip
+    case candyTopping
+    
+    var price: Double {
+        switch self {
+            case .scoop:
+                return 2.0
+            default:
+                return 0.25
+        }
+    }
+}
+
+extension IceCreamPart: CustomStringConvertible {
+    var description: String {
+        switch self {
+            case .scoop(let count):
+                return "\(count)x scoops"
+            case .waffer:
+                return "1x waffer"
+            case .cup:
+                return "1x cup"
+            case .chocolateDip:
+                return "1x chocolate dipping"
+            case .candyTopping:
+                return "1x candy topping"
+        }
+    }
+}
+
+protocol BillingStrategy {
+    func add(item: IceCreamPart) -> Double
+}
+
+class FullPriceStrategy: BillingStrategy {
+    func add(item: IceCreamPart) -> Double {
+        switch item {
+            case .scoop(let count):
+                return Double(count) * item.price
+            default:
+                return item.price
+        }
+    }
+}
+
+class HalfPriceToppings: FullPriceStrategy {
+    override func add(item: IceCreamPart) -> Double {
+        if case .candyTopping = item {
+            return item.price / 2.0
+        }
+        return super.add(item: item)
+    }
+}
+
+struct Bill {
+    var strategy: BillingStrategy
+    var items = [(IceCreamPart, Double)]()
+    
+    init(strategy: BillingStrategy) {
+        self.strategy = strategy
+    }
+    
+    mutating func add(item: IceCreamPart) {
+        let price = strategy.add(item: item)
+        items.append((item, price))
+    }
+    
+    func total() -> Double {
+        return items.reduce(0) { (total, item) -> Double in
+            return total + item.1
+        }
+    }
+}
+
+extension Bill: CustomStringConvertible {
+    var description: String {
+        return items.map { (item) -> String in
+            return item.0.description + " $\(item.1)"
+        }.joined(separator: "\n")
+        + "\n-------"
+        + "\nTotal $\(total())\n"
+    }
+}
+
+var bill = Bill(strategy: FullPriceStrategy())
+bill.add(item: .waffer)
+bill.add(item: .scoop(1))
+bill.add(item: .candyTopping)
+print(bill.description) //typeOf: String
+
+bill = Bill(strategy: FullPriceStrategy())
+bill.add(item: .cup)
+bill.add(item: .scoop(3))
+bill.strategy = HalfPriceToppings()
+bill.add(item: .candyTopping)
+print(bill) //typeOf: Bill
+
+// Introduced a loyalty program
+class HalfPriceStrategy: FullPriceStrategy {
+    override func add(item: IceCreamPart) -> Double {
+        return super.add(item: item)  / 2.0
+    }
+}
+
+bill = Bill(strategy: HalfPriceStrategy())
+bill.add(item: .waffer)
+bill.add(item: .scoop(1))
+bill.add(item: .candyTopping)
+print(bill) //typOf: Bill
+
+//*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // MARK: - Visitor Pattern
 /**
- Building a complex algorithms
+ Building a complex algorithms that are independent from the data they consume
  Ability to implement multiple distinct operations, without changing the underlying object structure
  Series of protocols that each object has to implement:
  -Define Visitable, elements that can be visited
@@ -18,7 +178,7 @@ import Foundation
  -Implement on or many Visitor Object and their logic
  */
 
-///*
+/*
 protocol Visitor {
     func visit<T>(element: T) where T: Visitable
 }
@@ -103,12 +263,12 @@ Contribution(date: threeDaysAgo,
 let allContribution = [Contribution]()
 allContribution.accept(visitor: thanksVisitor)
 
-// Send thanks!
-// thanksVisitor.contributions.forEach {
-    // sendThanks($0)
-//}
+/** Send thanks!
+ thanksVisitor.contributions.forEach {
+     sendThanks($0)
+} */
 
-//*/
+*/
 
 // MARK: - Memento Pattern
 /**
