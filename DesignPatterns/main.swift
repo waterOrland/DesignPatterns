@@ -7,9 +7,187 @@
 
 import Foundation
 
-// MARK: - Strategy Pattern
+// MARK: - Swift-Oriented Pattern - Getting Started
+
+///*
+// Protocols
+/** Adding requirements to protocols */
+protocol DemoProtocol {
+    var aRequiredProperty: String { get set }
+    var aReadOnlyProperty: Double { get }
+    static var aStaticProperty: Int { get }
+    
+    init(requiredProperty: String)
+    
+    func doSomething() -> Bool
+}
+
 /**
- Write programs that are able to select different algorithms or stragies at runtime
+ Can (and should) use protocols as types:
+ -Return type (parameter of a function)
+ -Member (variable or constant)
+ -Within arrays, dictionaries, or other container types
+ */
+protocol RunnerDelegate: AnyObject {
+    func didStart(runner: Runner)
+    func didStop(runner: Runner)
+}
+
+class Runner {
+    weak var delegate: RunnerDelegate?
+    func start() {
+        delegate?.didStop(runner: self)
+    }
+    func stop() {
+        delegate?.didStop(runner: self)
+    }
+}
+
+
+// Generics-based programming
+/** Write flexible code that works with any type and that follows the requirements settles at COMPILE TIME */
+
+func compare<T>(_ a: T, _ b: T) -> Int where T: Comparable {
+    /**
+     - "<T>" indicates that this function is generic
+     - "a: T, b: T" indicates that this method takes two parameters of the T type
+     - "where T: Comparable" indicates that T is required to conform to the Comparable protocol
+     */
+    if a > b { return 1 }
+    if a < b { return -1 }
+    return 0
+}
+
+// Conditional conformance
+/** Provide conformance or extensions to existing types on the condition that set of a requirements is fufilled */
+protocol Summable {
+//    var sum: Int { get }
+    
+    // Uncomment for Numeric conformance
+    associatedtype SumType
+    var sum: SumType { get }
+}
+
+/** Retrofit this type on Arrays of Int types to add integers together to produce a sum */
+//extension Array: Summable where Element == Int {
+//    var sum: Int {
+//        return self.reduce(0) { $0 + $1 }
+//    }
+//}
+
+//assert([1, 2, 3, 4].sum == 10)
+
+// Uncomment for Numeric conformance
+extension Array: Summable where Element: Numeric {
+    /**
+     Breakdown:
+     - "extension Array: Summable" declares that Array is extending to be Summable
+     - "where Element: Numeric" is only for arrays that habve their elements of the numeric type
+     - "typealias SumType = Element" declares that the sum will be the type of the array Element typ, not Numeric
+     */
+    typealias SumType = Element
+    var sum: Element {
+        return self.reduce(0) { $0 + $1 }
+    }
+}
+
+let intSum = [1,2,3,4,5].sum
+let doubleSum = [1.0,2.0,3.0,4.0].sum
+let floatSum: Float = [1.0,2.0,3.0,4.0].sum
+assert(intSum is Int)
+assert(doubleSum is Double)
+assert(floatSum is Float)
+
+extension Array/* : Summable */where Element == String {
+    /** Cannot declare multiple confomances with different restrictions */
+    var sum: String {
+        return self.reduce("") { $0 + $1 }
+    }
+}
+
+assert(["Hello", " ", "World", "!"].sum == "Hello World!")
+
+// Associated types
+
+protocol Food {}
+
+/**
+ // Error: Type 'Cow' does not conform to protocol 'Animal'
+ 
+ protocol Animal {
+     func eat(food: Food)
+ }
+ 
+struct Cow: Animal {
+    func eat(food: Grass) {}
+}
+ */
+
+// Refactor Animal
+protocol Animal {
+    /**
+     -Associated type can be thought about a generic type added on protocol
+     -FoodType is a placeholder that will be determined by the class or structure iimplementing the protocol
+     -Conveyed that FoodType should conform to the Food protocol
+     */
+    associatedtype FoodType: Food
+    func eat(food: FoodType)
+}
+
+struct Grass: Food {}
+struct Meat: Food {}
+struct Cow: Animal {
+    func eat(food: Grass) {}
+}
+struct Lion: Animal {
+    func eat(food: Meat) {}
+}
+
+// Feed all animal
+/**
+ Error: Use of protocol 'Animal as a type must be written 'any Animal'
+ Alt Error: Protocol 'Animal' can only be used as generic constraint because it has self or associated type req
+ 
+ func feed(animal: Animal) {}
+ 
+ Solve by using Animal as a generic constraint
+ */
+
+// Generic constraint
+func feed<A: Animal>(animal: A) {
+    switch animal {
+        case let cow as Cow:
+            cow.eat(food: Grass())
+        case let lion as Lion:
+            lion.eat(food: Meat())
+        default:
+            print("I can't feed...")
+            break
+    }
+}
+
+// Consider all animals in a single array
+/**
+ Error: Use of protocol 'Animal as a type must be written 'any Animal'
+ Alt Error: Protocol 'Animal' can only be used as generic constraint because it has self or associated type req
+ 
+ var animal = [Animal]()
+ 
+ Experiment with a generic class
+ */
+
+// Generic class
+class AnimalHolder<T> where T: Animal {
+    var animals = [T]()
+}
+
+let holder = AnimalHolder<# WHAT TO PUT HERE #>()
+
+//*/
+
+// MARK: - Behavioral Pattern - Strategy
+/**
+ Write programs that are able to select different algorithms or strategies at runtime
  -Complex classes with multiple algorithms changing at runtime
  -Algorithms that may improve performance and need to be swapped at runtime
  -Multiple implementations of similar algorithms in different classes, making them difficult to extract
@@ -20,7 +198,7 @@ import Foundation
  -Stragey implemtations that can be swapped at runtime
  */
 
-///*
+/*
 protocol Strategy {
     /** The algorithm that runs the code, and that will be swapped at runtime */
     associatedtype ReturnType
@@ -149,25 +327,9 @@ bill.add(item: .scoop(1))
 bill.add(item: .candyTopping)
 print(bill) //typOf: Bill
 
-//*/
+*/
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// MARK: - Visitor Pattern
+// MARK: - Behavioral Pattern - Visitor
 /**
  Building a complex algorithms that are independent from the data they consume
  Ability to implement multiple distinct operations, without changing the underlying object structure
@@ -270,7 +432,7 @@ allContribution.accept(visitor: thanksVisitor)
 
 */
 
-// MARK: - Memento Pattern
+// MARK: - Behavioral Pattern - Memento
 /**
  Preserve multiple states of program or models
  
@@ -387,7 +549,7 @@ print("4--\n\(shoppingList)\n\n")
 
 */
 
-// MARK: - Observer Pattern - Observation using pure Swift
+// MARK: - Behavioral Pattern - Observer - Observation using pure Swift
 /*
 struct Article {
     var title: String = "" {
@@ -412,7 +574,7 @@ article.title = "A Good Title"
 article.title = "A Better Title"
 */
 
-// MARK: - Flyweight Pattern
+// MARK: - Structural Pattern - Flyweight
 /**
  USAGE:
  -Creating many instances of the same object
@@ -469,7 +631,7 @@ items.forEach {
 print(shopping)
 */
 
-// MARK: - Bridge Pattern*
+// MARK: - Structural Pattern - Bridge Pattern*
 /**
  Architecture and testability.
  Swap at runtime which object performs the work:
@@ -563,7 +725,7 @@ assert(testImplementor.startCalled)
 assert(testImplementor.stopCalled)
 */
 
-// MARK: - Facade Pattern*
+// MARK: - Structural Pattern - Facade Pattern*
 /**
  Reduce the apparent complexity of a subsystem, by exposing a simpler interface.
  Hide multiple tightly coupled subcomponents behind a single object or method.
@@ -639,7 +801,7 @@ class CachedNetworking {
 }
 */
 
-// MARK: - Decorator Pattern
+// MARK: - Structural Pattern - Decorator Pattern
 /**
  Allows to add behaviors to objects without changing their structure or inheritance chain.
  Instead of subclassing, decorators enhance an object's behavior by adding functionalities
@@ -735,7 +897,7 @@ assert(burger.price == reducedBurger.price)
 
  */
  
-// MARK: - Builder Pattern
+// MARK: - Creational Pattern - Builder Pattern
 /**
  An abstract way the construction of objects or values that require a large number of parameters by using an intermediate representation.
  */
@@ -987,7 +1149,7 @@ for msg in logMsg {
 print()
 */
 
-// MARK: - Closure
+// Closure
 /*
 struct Company: CustomStringConvertible {
     let name: String
@@ -1008,7 +1170,7 @@ let apple = Company(name: "Apple")
 debugLog { apple.description }
 */
 
-// MARK: - Protocol
+// Protocol
 /*
 protocol Worker {
     associatedtype Input
