@@ -7,10 +7,390 @@
 
 import Foundation
 
+// MARK: - MVC Pattern - Refresher
+
+/** The model layer */
+// Question.swift
+enum BooleanAnswer: String {
+    case `true`
+    case `false`
+}
+
+struct Question {
+    let question: String
+    let answer: BooleanAnswer
+}
+
+extension Question {
+    func isGoodAnswer(result: String?) -> Bool {
+        return result == answer.rawValue
+    }
+}
+
+// QuestionController.swift
+class QuestionController {
+    private var questions = [Question]()
+    
+    func load() { /* Load from disk, memory or else */ }
+    func next() -> Question? {
+        return questions.popLast()
+    }
+}
+
+/** The view layer
+ Display information, not gather input
+ */
+struct QuestionView {
+    func show(question: Question) {
+        print(question.question)
+    }
+}
+
+struct PromptView {
+    func show() {
+        print(">", terminator: "")
+    }
+}
+
+class ViewController {
+    private let questionView = QuestionView()
+    private let promptView = PromptView()
+    
+    func ask(question: Question) {
+        questionView.show(question: question)
+        promptView.show()
+    }
+    func goodAnswer() { print("Good!") }
+    func badAnswer() { print("Bad!") }
+    func finishPlaying() { print("Done!") }
+}
+
+/** The controller layer */
+class GameController {
+    private let questions = QuestionController()
+    private let view = ViewController()
+    
+    private func waitForAnswer(question: Question) {
+        // Wait for user input
+        let result = readLine()
+        // Ask the model if answer is good
+        if question.isGoodAnswer(result: result) {
+            // Update view
+            view.goodAnswer()
+        } else {
+            view.badAnswer()
+        }
+    }
+    
+    func start() {
+        // From the model layer, get the next question
+        while let question = questions.next() {
+            // Display the question on screen
+            view.ask(question: question)
+            waitForAnswer(question: question)
+        }
+        view.finishPlaying()
+    }
+}
+
+// main.swift
+GameController().start()
+
+// MARK: - Swift-Oriented Pattern - Template with protocol-oriented programming
+/**
+ -Usually implemented with abstract class
+ -Design algorithms at high level while letting subclasses or implementers modify or provide parts of it
+ -Default implementations are suited for generic algorithms that can lter be applied to a slew of concrete types
+ -Useful when only parts of an algorithm is dynamic and those changes can or should be deffered to sublcasses and have no effect on the overall algorithm
+ */
+
+/*
+protocol RecommendationEngine {
+    associatedtype Model
+    var models: [Model] { get }
+    func filter(elements: [Model]) -> [Model]
+    func sort(elements: [Model]) -> [Model]
+}
+
+extension RecommendationEngine {
+    func match() -> Model? {
+        // If there is only 0 or 1 models, no need to run the algorithm
+        guard
+            models.count > 1 else { return models.first }
+        return sort(elements: filter(elements: models)).first
+    }
+}
+
+struct Restaurant {
+    var name: String
+    var visited: Bool
+    var score: Double
+}
+
+let restaurants = [
+    Restaurant(name: "Tony's Pizza", visited: true, score: 2.0),
+    Restaurant(name: "Krusty's", visited: true, score: 3.0),
+    Restaurant(name: "Bob's Burger", visited: false, score: 4.9)
+]
+
+struct FavoriteEngine: RecommendationEngine {
+    var models: [Restaurant]
+    // Filter only the restaurants visited
+    func filter(elements: [Restaurant]) -> [Restaurant] {
+        return elements.filter { $0.visited }
+    }
+    /** Conditional Conformance
+    func sort(elements: [Restaurant]) -> [Restaurant] {
+        return elements.sorted { $0.score > $1.score }
+    }
+     */
+}
+
+let favoriteEngine = FavoriteEngine(models: restaurants)
+let favoriteMatch = favoriteEngine.match()
+print(favoriteMatch!)
+
+struct BestEngine: RecommendationEngine {
+    var models: [Restaurant]
+    func filter(elements: [Restaurant]) -> [Restaurant] {
+        return elements.filter { !$0.visited } // ! Bool = false
+    }
+    /** Conditional Conformance
+    func sort(elements: [Restaurant]) -> [Restaurant] {
+        return elements.sorted { $0.score > $1.score }
+    }
+     */
+}
+
+let bestEngine = BestEngine(models: restaurants)
+let bestMatch = bestEngine.match()
+print(bestMatch!)
+
+extension RecommendationEngine where Model == Restaurant {
+    /** Conditional Conformance (reason: sorting algorithm duplication) */
+    func sort(elements: [Model]) -> [Model] {
+        return elements.sorted { $0.score > $1.score }
+    }
+}
+*/
+
+// MARK: - Swift-Oriented Pattern - Type Erasure*
+/**
+ Remove type annotations from a particular program
+ Represent protocols with associated types into a concrete type with generics
+ */
+
+/*
+protocol Food {}
+protocol Animal {
+    /**
+     -Associated type can be thought about a generic type added on protocol
+     -FoodType is a placeholder that will be determined by the class or structure iimplementing the protocol
+     -Conveyed that FoodType should conform to the Food protocol
+     */
+    associatedtype FoodType: Food
+    func eat(food: FoodType)
+}
+
+struct Grass: Food {}
+
+struct Cow: Animal {
+    func eat(food: Grass) {
+        print("Grass is yummy! moooooo!")
+    }
+}
+
+struct Goat: Animal {
+    func eat(food: Grass) {
+        print("Grass is good! meehhhh!")
+    }
+}
+
+// Elements of type erasure
+class AnyAnimal<T>: Animal where T: Food {
+    /** Wrapper
+     Basic erasure type suited that has few methods
+     */
+    typealias FoodType = T
+    func eat(food: T) {}
+}
+
+// Closure-based type Erasure
+final class AnyAnimalV2<T>: Animal where T: Food {
+    /** Wrapper
+     This type will be used as proxy to the Animal type
+     Changes from basic:
+     -Mark final to avoid wrong usage
+     -Added an 'eatBlock: (T) -> Void' property to CAPTURE the eat method
+     -Added 'func eat(food: T)' to FORWARD the calls to original method
+     -Added generic initializer that also binds the T type to FoodType of the provided Animal type, A.FoodType
+     */
+    typealias FoodType = T
+    private let eatBlock: (T) -> Void
+    
+    init<A: Animal>(animal: A) where A.FoodType == T {
+        eatBlock = animal.eat
+    }
+    
+    func eat(food: T) {
+        eatBlock(food)
+    }
+}
+
+let aCow = AnyAnimalV2(animal: Cow())
+let aGoat = AnyAnimalV2(animal: Goat())
+let grassEaters = [aCow, aGoat]
+assert(grassEaters is [AnyAnimalV2<Grass>])
+
+grassEaters.forEach { (animal) in
+    animal.eat(food: Grass())
+}
+
+// Boxing-based type erasure
+/**
+ -An abstract base class
+ -A private box, which will inherit the abstract base class
+ -A public wrapper
+ */
+protocol AnimalV2 {
+    associatedtype FoodType: Food
+    var preferredFood: FoodType? { get set }
+    var name: String { get }
+    func eat(food: FoodType)
+}
+
+final class AnyAnimalV3<T>: Animal where T: Food {
+    typealias FoodType = T
+    var prefferedFood: T?
+    let name: String = ""
+    func eat(food: T) {}
+}
+
+/** Abstract base class
+ -Conforms to our base protocol
+ -An abstract class so provides a top implementation for the private box
+ -Defines a generic prameter, T or F, bound to the associated type
+ */
+
+private class _AnyAnimalBase<F>: AnimalV2 where F: Food {
+    /** Abstract Class Convention: _Any#MY_PROTOCOL#BASE<> */
+    var preferredFood: FoodType? {
+        get { fatalError() }
+        set { fatalError() }
+    }
+    var name: String { fatalError() }
+    func eat(food: F) { fatalError() }
+}
+
+/** Private box  */
+private final class _AnyAnimalBox<A: AnimalV2>: _AnyAnimalBase<A.FoodType> {
+    /**
+     -Implements the abstract base class.
+     -Provide a wrapper around the concrete object impleneting the PAT and forward all calls to boxed object
+     */
+    // The target object, that is an Animal
+    var target: A
+    init(_ target: A) {
+        self.target = target
+    }
+    
+    // Overrides the abstract classes' implementation
+    // Forward all invocations to the concrete target
+    override var name: String {
+        return target.name
+    }
+    override var preferredFood: A.FoodType? {
+        get { return target.preferredFood }
+        set { target.preferredFood = newValue }
+    }
+    override func eat(food: A.FoodType) {
+        target.eat(food: food)
+    }
+    
+    /**
+     As AnyAnimalBox class extends AnyAnimalBase, it will be able to keep references of our boxes as their abstract class type,
+     which successfully bridges the world of protocols and their associated types to the world of generics
+     */
+}
+
+// Public wrapper
+final class AnyAnimalV31<T>: AnimalV2 where T: Food {
+    typealias FoodType = T
+    private let box: _AnyAnimalBase<T>
+    
+    init<A: AnimalV2>(_ animal: A) where A.FoodType == T {
+        box = _AnyAnimalBox(animal)
+    }
+    
+    // Call forwarding for implementing Animal
+    var preferredFood: T? {
+        get { return box.preferredFood }
+        set { box.preferredFood = newValue }
+    }
+    var name: String {
+        return box.name
+    }
+    func eat(food: T) {
+        box.eat(food: food)
+    }
+}
+
+struct CowV2: AnimalV2 {
+    var name: String
+    var preferredFood: GrassV2? = nil
+}
+
+struct GoatV2: AnimalV2 {
+    var name: String
+    var preferredFood: GrassV2? = nil
+}
+
+extension AnimalV2 where FoodType: GrassV2 {
+    func eat(food: FoodType) {
+        if let preferredFood = preferredFood,
+           type(of: food) == type(of: preferredFood) {
+            print("\(name): Yummy! \(type(of: food))")
+        } else {
+            print("\(name): I'm eating...")
+        }
+    }
+}
+
+class GrassV2: Food {}
+class Flower: GrassV2 {}
+class Dandelion: GrassV2 {}
+class Shamrock: GrassV2 {}
+
+let flock = [
+    AnyAnimalV31(CowV2(name: "Bessie", preferredFood: Dandelion())),
+    AnyAnimalV31(CowV2(name: "Henrietta")),
+    AnyAnimalV31(GoatV2(name: "Billy", preferredFood: Shamrock())),
+    AnyAnimalV31(GoatV2(name: "Nanny", preferredFood: Flower()))
+]
+
+let flowers = [
+    GrassV2(),
+    Dandelion(),
+    Flower(),
+    Shamrock()
+]
+
+while true {
+    flock.randomElement()?
+        .eat(food: flowers.randomElement()!)
+    sleep(1)
+}
+*/
+
 // MARK: - Swift-Oriented Pattern - Getting Started
 
-///*
+/*
 // Protocols
+ /**
+  Protocols cannot be used as types when they are associated with another type,
+  in the form of Self or associated type requirement
+  */
+ 
 /** Adding requirements to protocols */
 protocol DemoProtocol {
     var aRequiredProperty: String { get set }
@@ -49,9 +429,9 @@ class Runner {
 
 func compare<T>(_ a: T, _ b: T) -> Int where T: Comparable {
     /**
-     - "<T>" indicates that this function is generic
-     - "a: T, b: T" indicates that this method takes two parameters of the T type
-     - "where T: Comparable" indicates that T is required to conform to the Comparable protocol
+     - '<T>' indicates that this function is generic
+     - 'a: T, b: T' indicates that this method takes two parameters of the T type
+     - 'where T: Comparable' indicates that T is required to conform to the Comparable protocol
      */
     if a > b { return 1 }
     if a < b { return -1 }
@@ -144,7 +524,7 @@ struct Lion: Animal {
 }
 
 // Feed all animal
-/**
+/** Self requirement errors
  Error: Use of protocol 'Animal as a type must be written 'any Animal'
  Alt Error: Protocol 'Animal' can only be used as generic constraint because it has self or associated type req
  
@@ -158,21 +538,27 @@ func feed<A: Animal>(animal: A) {
     switch animal {
         case let cow as Cow:
             cow.eat(food: Grass())
+            print("The \(animal) is eating grass")
         case let lion as Lion:
             lion.eat(food: Meat())
+            print("The \(animal) is eating meat")
         default:
             print("I can't feed...")
             break
     }
 }
 
+feed(animal: Cow())
+feed(animal: Lion())
+
 // Consider all animals in a single array
-/**
+/** Self requirement errors
  Error: Use of protocol 'Animal as a type must be written 'any Animal'
  Alt Error: Protocol 'Animal' can only be used as generic constraint because it has self or associated type req
  
  var animal = [Animal]()
  
+ Cannot store animals altogether
  Experiment with a generic class
  */
 
@@ -180,10 +566,28 @@ func feed<A: Animal>(animal: A) {
 class AnimalHolder<T> where T: Animal {
     var animals = [T]()
 }
+print("\n")
+let holder = AnimalHolder<Cow>()
+let cow = Cow()
+print(holder.animals)
+holder.animals.append(cow)
+print(holder.animals)
 
-let holder = AnimalHolder<# WHAT TO PUT HERE #>()
+// Self requirement
+/** Consider: */
+protocol Thing {
+    associatedtype AType
+}
 
-//*/
+struct Node: Thing {
+    /** Node confroms to Thing and sets its AType associatedtype to itself via typealias */
+    typealias AType = Thing // Self associated type
+}
+/** Self requirement error
+let thing: Thing = Node()
+ */
+
+*/
 
 // MARK: - Behavioral Pattern - Strategy
 /**
