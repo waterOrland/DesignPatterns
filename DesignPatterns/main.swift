@@ -7,8 +7,444 @@
 
 import Foundation
 
-// MARK: - MVC Pattern - Refresher
+// MARK: - Futures, Promises, and Reactive Programming
+ /** Closure and memory management
+ -Closure closes over the variables and constants it refers from the enclosing context
+ */
 
+///*
+import Dispatch
+struct Book {
+    var title: String
+    var author: String
+    var price: Double
+}
+
+func sellBook(_ book: Book) -> () -> Double {
+    var totalSales = 0.0
+    func sell() -> Double {
+        totalSales += book.price
+        return totalSales
+    }
+    return sell
+}
+
+let bookA = Book(title: "BookA", author: "AuthorA", price: 10.0)
+let bookB = Book(title: "BookB", author: "AuthorB", price: 13.0)
+let sellBookA = sellBook(bookA)
+let sellBookB = sellBook(bookB)
+print("book sales for: \(sellBookA())")
+print("book sales for: \(sellBookB())")
+
+// Removing @escaping will trigger compiler complaint
+func delay(_ d: Double, fn: @escaping () -> ()) {
+    DispatchQueue.global().asyncAfter(deadline: .now() + d) {
+        DispatchQueue.main.async {
+            fn()
+        }
+    }
+}
+
+// Breaking the Cyclic Dependencies
+class OpertionJuggler {
+    /** Retain cycle
+     -Stores closure created by addOperation in its operations property
+     -Refers self, so it holds a strong reference, but the operations array, which is strongly referenced by self, also takes a strong reference to the closure
+     -Preceding code will compile, Xcode Analyze command is not able to detect the cycle, however. App may crash at runtime due to its memory footprint
+     */
+    
+    private var operations: [() -> Void] = []
+    var delay = 1.0
+    var name = ""
+    init(name: String) {
+        self.name = name
+    }
+    func addOperation(op: (@escaping ()->Void)) {
+        self.operations.append { [weak self] () in
+            if let sself = self {
+                DispatchQueue.global().asyncAfter(deadline: .now() + sself.delay) {
+                    op()
+                }
+            }
+        }
+    }
+    func runLastOperation(index: Int) {
+        self.operations.last!()
+    }
+}
+
+/**
+class ViewController: UIViewController {
+    /** Shows retain cycle */
+    var opJ = OperationJuggler(name: "first")
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        opJ.addOperation {
+            print("Executing operation 1")
+        }
+        self. opJ.runLastOperation(index: 0)
+    }
+    // Release the previous OperationJuggler
+    self.opJ = OperationJuggler(name: "replacement")
+}
+ */
+
+class OperationJugglerr {
+    /** Removing the retain cycle */
+    private var operations : [() -> Void] = []
+    var delay = 1.0
+    var name = ""
+    init(name: String) {
+        self.name = name
+    }
+    func addOperation(op: (@escaping ()->Void)) {
+        self.operations.append { [weak self] in
+            guard let self = self else { return }
+            DispatchQueue.global().asyncAfter(deadline: .now() + self.delay) {
+                op()
+            }
+        }
+    }
+    func runLastOperation(index: Int) {
+        self.operations.last!()
+    }
+    deinit {
+        self.delay = -1.0
+        print("Juggler named " + self.name + " DEINITIED")
+    }
+}
+
+class IncrementJuggler {
+    /** Retain cycle would ensue just the same */
+    private var incrementValues : [(Int) -> Int] = []
+    var baseValue = 100
+    
+    func addValue(increment: Int) {
+        self.incrementValues.append { (increment) -> Int in
+            return self.baseValue + increment
+        }
+    }
+    func runOperation(index: Int) {
+        //...
+    }
+}
+
+// Future and promises under the hood
+
+public enum Result<Value> {
+    case success(Value)
+    case failure(Error)
+}
+
+enum SimpleError: Error {
+    case errorCause1
+    case errorCause2
+}
+
+typealias Callback<T> = (Result<T>) -> Void
+
+/**
+ -Future represent read-only
+ -Promise responsible for resolving success or failure
+ */
+
+public class Future<T> {
+    internal var result : Result<T>? {
+        didSet {
+            if let result = result, let callback = callback {
+                callback(result)
+            }
+        }
+    }
+    var callback : Callback<T>?
+    init(_ callback: Callback<T>? = nil) {
+        self.callback = callback
+    }
+    func then(_ callback: @escaping Callback<T>) {
+        self.callback = callback
+        if let result = result {
+            callback(result)
+        }
+    }
+}
+
+public final class Promise<T> : Future<T> {
+    func resolve(_ value: T) {
+        result = .success(value)
+    }
+    func reject(_ error: Error) {
+        result = .failure(error)
+    }
+}
+
+func asyncOperation1(_ delay: Double) -> Promise<String> {
+    /** Does NOT prevent callback hell */
+    let promise = Promise<String>()
+    DispatchQueue.global().asyncAfter(deadline: .now() + delay) {
+        DispatchQueue.main.async {
+            print("asyncoperation1 Completed")
+            promise.result = .success("Test Result")
+        }
+    }
+    return promise
+}
+
+let future : Future<String> = asyncOperation1(1.0)
+future.then { result in
+    switch (result) {
+        case .success(let value) :
+            print(" Handling result: \(value) ")
+        case .failure(let error):
+            print(" Handling error: \(error) ")
+    }
+}
+
+/**
+ OUTPUT:
+ aSyncoperation 1 Completed
+    Handling result: Test Result
+ */
+
+extension Future {
+    func chain<U>(_ cbk: @escaping (T) -> Future<U>) -> Future<U> {
+        let p = Promise<U>()
+        self.then { result in
+            switch result {
+                case .success(let value) : cbk(value).then { r in p.result = r }
+                case .failure(let error) : p.result = .failure(error)
+            }
+        }
+        return p
+    }
+}
+
+func asyncOperation2 () -> Promise<String> {
+    let promise = Promise<String>()
+    DispatchQueue.global().asyncAfter(deadline: .now() + 1.5) {
+        DispatchQueue.main.async {
+            print("asynOperation2 completed")
+            promise.resolve("Test Result")
+        }
+    }
+    return promise
+}
+
+func asyncOperation3(_ str : String) -> Promise<Int> {
+    let promise = Promise<Int>()
+    DispatchQueue.global().asyncAfter(deadline: .now() + 1.5) {
+        DispatchQueue.main.async {
+            print("asyncOperation3 completed")
+            promise.resolve(1000)
+        }
+    }
+    return promise
+}
+
+func asyncOperation4(_ input : Int) -> Promise<Double> {
+    let promise = Promise<Double>()
+    DispatchQueue.global().asyncAfter(deadline: .now() + 1.5) {
+        DispatchQueue.main.async {
+            print("asyncOperation4 completed")
+            promise.reject(SimpleError.errorCause1)
+        }
+    }
+    return promise
+}
+
+let promise2 = asyncOperation2()
+promise2.chain { result in
+    return asyncOperation3(result)
+}.chain { result in
+    return asyncOperation4(result)
+}.then { result in
+    print("THEN: \(result)")
+}
+
+// Reactive programming
+/** !! Skipped !! */
+
+// MARK: - Dependency Injection Pattern - Incomplete
+/**
+ -Creating a maintainable and testable system
+ */
+
+/*
+/** Constructor Injection */
+protocol BasketStore {
+    func loadAllProduct() -> [Product]
+    func add(product: Product)
+    func delete(product: Product)
+}
+
+protocol BasketService {
+    func fetchAllProduct(onSuccess: ([Product]) -> Void )
+    func append(product: Product)
+    func remove(product: Product)
+}
+
+struct Product {
+    let id: String
+    let name: String
+    //...
+}
+
+class BasketClient {
+    private let service: BasketService
+    private let store: BasketStore
+    init(service: BasketService, store: BasketStore) {
+        self.service = service
+        self.store = store
+    }
+    
+    func add(product: Product) {
+        store.add(product: product)
+        service.append(product: product)
+        calculateAppliedDiscount()
+        //...
+    }
+    //...
+    private func calculateAppliedDiscount() {
+        //...
+    }
+}
+
+class NSPersistentStore: NSObject {
+    init(persistentStoreCoordinator root: NSPersistentStoreCoordinator?,
+         configurationName name: String?,
+         URL url: NSURL,
+         options: [NSObject: AnyObject]?)
+    var persistentStoreCoordinator: NSPersistentStoreCoordinator? { get }
+}
+*/
+
+// MARK: - MVVM Pattern - Incomplete
+
+/*
+/** Model */
+// Question.swift
+enum BooleanAnswer: String {
+    case `true`
+    case `false`
+}
+
+struct Question {
+    let question: String
+    let answer: BooleanAnswer
+}
+
+extension Question {
+    func isGoodAnswer(result: String?) -> Bool {
+        return result == answer.rawValue
+    }
+}
+
+// QuestionController.swift
+class QuestionController {
+    private var questions = [Question]()
+    
+    func load() { /* load from disk, memor or else */ }
+    
+    // Get the next question, if available
+    func next() -> Question? {
+        return questions.popLast()
+    }
+}
+
+/** ViewModel
+ -Provide a usable representation of the Model to the View layer
+ -Provide a way to BIND itself to events using closures in order to attach the callbacks to ViewModel
+ */
+
+class ViewModel {
+    private let questions = QuestionController()
+    private var currentQuestion: Question? = nil {
+        didSet { onQuestionChanged?() }
+    }
+    var onQuestionChanged: (() -> Void)?
+    var onAnswer: ((Bool) -> Void)?
+    
+    func getQuestionText() -> String? {
+        return currentQuestion?.question
+    }
+    
+    func start() {
+        while let question = nextQuestion() {
+            waitForAnswer(question: question)
+        }
+    }
+    private func waitForAnswer(question: Question) {
+        let result = readLine()
+        onAnswer?(question.isGoodAnswer(result: result))
+    }
+    private func nextQuestion() -> Question? {
+        currentQuestion = questions.next()
+        return currentQuestion
+    }
+}
+
+/** View */
+struct QuestionView {
+    func show(question: Question) {
+        print(question.question)
+    }
+}
+
+struct PromptView {
+    func show() {
+        print("> ", terminator: "")
+    }
+}
+
+class MainView {
+    private let questionView = QuestionView()
+    private let promptView = PromptView()
+    
+    /** Initialization will requre the pass ViewModel (The viewModel is often attached to the following:) */
+    let viewModel: ViewModel
+    init(viewModel: ViewModel) {
+        self.viewModel = viewModel
+        bindViewModel()
+    }
+    
+    func bindViewModel() {
+        viewModel.onQuestionChanged = { [unowned self] in
+            guard
+                let string = self.viewModel.getQuestionText() else {
+                // No more questions?
+                self.finishPlaying()
+                return
+            }
+            self.ask(question: string)
+        }
+        viewModel.onAnswer = { [unowned self] (isGood) -> Void in
+            if isGood {
+                self.goodAnswer()
+            } else {
+                self.badAnswer()
+            }
+        }
+    }
+    private func ask(question: Question) {
+        questionView.show(question: question)
+        promptView.show()
+    }
+    func goodAnswer() {}
+    func badAnswer() {}
+    func finishPlaying() {}
+}
+
+// Create a new ViewModel instance
+let viewModel = ViewModel()
+// Inject the viewModel into the view
+let view = MainView(viewModel: viewModel)
+// Start the viewModel
+viewModel.start()
+*/
+
+// MARK: - MVC Pattern
+
+/*
 /** The model layer */
 // Question.swift
 enum BooleanAnswer: String {
@@ -95,6 +531,7 @@ class GameController {
 
 // main.swift
 GameController().start()
+*/
 
 // MARK: - Swift-Oriented Pattern - Template with protocol-oriented programming
 /**
