@@ -269,7 +269,6 @@ promise2.chain { result in
  -Creating a maintainable and testable system
  */
 
-/*
 /** Constructor Injection */
 protocol BasketStore {
     func loadAllProduct() -> [Product]
@@ -316,11 +315,9 @@ class NSPersistentStore: NSObject {
          options: [NSObject: AnyObject]?)
     var persistentStoreCoordinator: NSPersistentStoreCoordinator? { get }
 }
-*/
 
 // MARK: - MVVM Pattern - Incomplete
 
-/*
 /** Model */
 // Question.swift
 enum BooleanAnswer: String {
@@ -440,11 +437,9 @@ let viewModel = ViewModel()
 let view = MainView(viewModel: viewModel)
 // Start the viewModel
 viewModel.start()
-*/
 
 // MARK: - MVC Pattern
 
-/*
 /** The model layer */
 // Question.swift
 enum BooleanAnswer: String {
@@ -531,7 +526,6 @@ class GameController {
 
 // main.swift
 GameController().start()
-*/
 
 // MARK: - Swift-Oriented Pattern - Template with protocol-oriented programming
 /**
@@ -541,7 +535,6 @@ GameController().start()
  -Useful when only parts of an algorithm is dynamic and those changes can or should be deffered to sublcasses and have no effect on the overall algorithm
  */
 
-/*
 protocol RecommendationEngine {
     associatedtype Model
     var models: [Model] { get }
@@ -609,7 +602,6 @@ extension RecommendationEngine where Model == Restaurant {
         return elements.sorted { $0.score > $1.score }
     }
 }
-*/
 
 // MARK: - Swift-Oriented Pattern - Type Erasure*
 /**
@@ -617,7 +609,6 @@ extension RecommendationEngine where Model == Restaurant {
  Represent protocols with associated types into a concrete type with generics
  */
 
-/*
 protocol Food {}
 protocol Animal {
     /**
@@ -817,11 +808,10 @@ while true {
         .eat(food: flowers.randomElement()!)
     sleep(1)
 }
-*/
 
 // MARK: - Swift-Oriented Pattern - Getting Started
 
-/*
+
 // Protocols
  /**
   Protocols cannot be used as types when they are associated with another type,
@@ -1024,8 +1014,6 @@ struct Node: Thing {
 let thing: Thing = Node()
  */
 
-*/
-
 // MARK: - Behavioral Pattern - Strategy
 /**
  Write programs that are able to select different algorithms or strategies at runtime
@@ -1039,7 +1027,6 @@ let thing: Thing = Node()
  -Stragey implemtations that can be swapped at runtime
  */
 
-/*
 protocol Strategy {
     /** The algorithm that runs the code, and that will be swapped at runtime */
     associatedtype ReturnType
@@ -1168,8 +1155,6 @@ bill.add(item: .scoop(1))
 bill.add(item: .candyTopping)
 print(bill) //typOf: Bill
 
-*/
-
 // MARK: - Behavioral Pattern - Visitor
 /**
  Building a complex algorithms that are independent from the data they consume
@@ -1181,7 +1166,6 @@ print(bill) //typOf: Bill
  -Implement on or many Visitor Object and their logic
  */
 
-/*
 protocol Visitor {
     func visit<T>(element: T) where T: Visitable
 }
@@ -1271,8 +1255,6 @@ allContribution.accept(visitor: thanksVisitor)
      sendThanks($0)
 } */
 
-*/
-
 // MARK: - Behavioral Pattern - Memento
 /**
  Preserve multiple states of program or models
@@ -1282,7 +1264,6 @@ allContribution.accept(visitor: thanksVisitor)
  CareTaker: an external object that stores and restores a Memento to an Originator
  */
 
-/*
 protocol Originator {
     /**
      Two responsibilities:
@@ -1388,10 +1369,8 @@ print("3--\n\(shoppingList)\n\n")
 shoppingList.restore() // picked up wrong item
 print("4--\n\(shoppingList)\n\n")
 
-*/
-
 // MARK: - Behavioral Pattern - Observer - Observation using pure Swift
-/*
+
 struct Article {
     var title: String = "" {
         willSet {
@@ -1413,7 +1392,6 @@ var article = Article()
 article.title = "A Good Title"
 article.title = "A Good Title"
 article.title = "A Better Title"
-*/
 
 // MARK: - Structural Pattern - Flyweight
 /**
@@ -1423,7 +1401,6 @@ article.title = "A Better Title"
  -Does not mutate those instances, and can afford to share across the program
  */
 
-/*
 struct Ingredient: CustomDebugStringConvertible {
     let name: String
     var debugDescription: String{
@@ -1470,7 +1447,6 @@ items.forEach {
     shopping.add(item: $0)
 }
 print(shopping)
-*/
 
 // MARK: - Structural Pattern - Bridge Pattern*
 /**
@@ -1480,7 +1456,6 @@ print(shopping)
  -Implementor
  */
 
-/*
 protocol ImplementorType {
     func start()
     func stop()
@@ -1564,7 +1539,6 @@ abstraction.restart()
 assert(testImplementor.inProperOrder)
 assert(testImplementor.startCalled)
 assert(testImplementor.stopCalled)
-*/
 
 // MARK: - Structural Pattern - Facade Pattern*
 /**
@@ -1575,7 +1549,6 @@ assert(testImplementor.stopCalled)
  -CacheCleaner: The subsystem responsible for periodically running over the cache and actively removing stale data
  */
 
-/*
 class Cache {
     func set(response: URLResponse, data: Data, for request: URLRequest) {}
     func get(for request: URLRequest) -> (URLResponse, Data)? {}
@@ -1640,7 +1613,6 @@ class CachedNetworking {
         cleaner.stop()
     }
 }
-*/
 
 // MARK: - Structural Pattern - Decorator Pattern
 /**
@@ -1648,7 +1620,6 @@ class CachedNetworking {
  Instead of subclassing, decorators enhance an object's behavior by adding functionalities
  */
 
- /*
 public protocol Burger {
     var price: Double { get }
     var ingredients: [String] { get }
@@ -1735,15 +1706,12 @@ print(reducedBurger.price)
 print(reducedBurger.ingredients)
 assert(burger.ingredients == reducedBurger.ingredients)
 assert(burger.price == reducedBurger.price)
-
- */
  
 // MARK: - Creational Pattern - Builder Pattern
 /**
  An abstract way the construction of objects or values that require a large number of parameters by using an intermediate representation.
  */
 
-/*
 struct Article {
     let id: String
     let title: String
@@ -1801,11 +1769,9 @@ extension Article {
 }
 
 let builder = Article.Builder()
-*/
 
 // MARK: - Refreshing The Basics
 
-/*
 func get<T>(url: URL, callback: @escaping (T?, Error?) -> Void) -> URLSessionTask where T: Decodable {
     let task = URLSession.shared.dataTask(with: url) { data, response, error in
         if let error = error {
@@ -1826,9 +1792,7 @@ func get<T>(url: URL, callback: @escaping (T?, Error?) -> Void) -> URLSessionTas
     task.resume()
     return task
 }
-*/
 
-/*
 protocol Toggling {
     mutating func toggle()
     var isActive: Bool { get }
@@ -1863,9 +1827,7 @@ extension Toggling where Self == State {
         return self == .on
     }
 }
-*/
 
-/*
 enum State<T>: Equatable where T: Equatable {
     case on
     case off
@@ -1906,9 +1868,6 @@ nostalgiaState.toggle()
 //state.toggle()
 //print(state)
 
-*/
-
-/*
 class Point {
     var x: Double
     var y: Double
@@ -1954,11 +1913,8 @@ let point2 = Point(x: 0.0, y: 0.0)
     .translating(dx: 2.0, dy: 3.0)
 point2.x == 7.0
 point2.y == 5.0
-*/
 
-
-/*
- func returnAny(randomType: Any) -> Any {
+func returnAny(randomType: Any) -> Any {
      return randomType
  }
 
@@ -1968,9 +1924,7 @@ point2.y == 5.0
  print(type(of: returnAny(randomType: 123)))
 
  let arr = ["A", "B", "C", "D", "F", "U"]
- */
 
-/*
 enum MessageBoard {
     case text(userID: String, contents: String, date: Date)
 }
@@ -1988,10 +1942,9 @@ for msg in logMsg {
 }
 
 print()
-*/
 
 // Closure
-/*
+
 struct Company: CustomStringConvertible {
     let name: String
     var description: String {
@@ -2009,10 +1962,9 @@ func debugLog(message: () -> String) {
 
 let apple = Company(name: "Apple")
 debugLog { apple.description }
-*/
 
 // Protocol
-/*
+
 protocol Worker {
     associatedtype Input
     associatedtype Output
@@ -2057,5 +2009,4 @@ where W: Worker, W.Input == User {
 }
 
 runWorker(worker: mailJob.start(input: "@email"), input: [user.fName, user.lName])
-*/
 
